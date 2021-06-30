@@ -24,8 +24,7 @@
 #include "nica/files.h"
 #include "system_stub.h"
 
-static bool boot_manager_update_image(BootManager *self);
-static bool boot_manager_update_native(BootManager *self);
+static bool boot_manager_update_target(BootManager *self);
 static bool boot_manager_update_bootloader(BootManager *self);
 
 bool boot_manager_update(BootManager *self)
@@ -35,19 +34,10 @@ bool boot_manager_update(BootManager *self)
         autofree(char) *boot_dir = NULL;
         int did_mount = -1;
 
-        /* Image mode is very simple, no prep/cleanup */
-        if (boot_manager_is_image_mode(self)) {
-                LOG_DEBUG("Skipping to image-update");
-                return boot_manager_update_image(self);
-        }
-
         did_mount = detect_and_mount_boot(self, &boot_dir);
-        if (did_mount >= 0) {
-                /* Do a native update */
-                ret = boot_manager_update_native(self);
-                if (did_mount > 0) {
-                        umount_boot(boot_dir);
-                }
+        ret = boot_manager_update_target(self);
+        if (did_mount > 0) {
+                umount_boot(boot_dir);
         }
 
         /* Done */
@@ -55,98 +45,9 @@ bool boot_manager_update(BootManager *self)
 }
 
 /**
- * Update the target with logical view of an image creation
- *
- * Quite simply, we install all potential kernels to the specified boot
- * directory, and ensure it's equipped with a boot loader. The kernel with
- * the highest release number is selected as the default kernel.
- *
- * This method assumes the boot partition is *already mounted* at the target,
- * therefore it is an _error_ for the target to not exist. No attempt is
- * made to determine the running kernel or to mount a boot partition.
- */
-static bool boot_manager_update_image(BootManager *self)
-{
-        assert(self != NULL);
-        autofree(KernelArray) *kernels = NULL;
-        autofree(char) *boot_dir = NULL;
-        const Kernel *default_kernel = NULL;
-        bool ret = true;
-
-        LOG_DEBUG("Now beginning update_image");
-
-        /* Grab the available kernels */
-        kernels = boot_manager_get_kernels(self);
-        if (!kernels || kernels->len == 0) {
-                LOG_ERROR("No kernels discovered in %s, bailing", self->kernel_dir);
-                return false;
-        }
-
-        LOG_DEBUG("update_image: %d available kernels", kernels->len);
-
-        /* Grab boot dir */
-        boot_dir = boot_manager_get_boot_dir(self);
-        if (!boot_dir) {
-                DECLARE_OOM();
-                return false;
-        }
-
-        /* If it doesn't exist this is a user error */
-        if (!nc_file_exists(boot_dir)) {
-                LOG_ERROR("Cannot find boot directory, ensure it is mounted: %s", boot_dir);
-                return false;
-        }
-
-        /* Reinit bootloader for image mode to ensure the bootloader is then
-         * re-initialised for the current settings and environment.
-         */
-        if (!boot_manager_set_boot_dir(self, boot_dir)) {
-                LOG_FATAL("Cannot re-initialise bootloader for image mode");
-                return false;
-        }
-
-        /* Sort them to find the newest kernel */
-        nc_array_qsort(kernels, kernel_compare_reverse);
-
-        LOG_INFO("update_image: Attempting bootloader update");
-        if (boot_manager_update_bootloader(self)) {
-                ret = true;
-                LOG_SUCCESS("update_image: Bootloader update successful");
-        }
-
-        if (!boot_manager_copy_initrd_freestanding(self)) {
-                LOG_ERROR("Failed to copying freestanding initrd");
-                return false;
-        }
-
-        /* Go ahead and install the kernels */
-        for (uint16_t i = 0; i < kernels->len; i++) {
-                const Kernel *k = nc_array_get(kernels, i);
-                LOG_DEBUG("update_image: Attempting install of %s", k->source.path);
-                if (!boot_manager_install_kernel(self, k)) {
-                        LOG_FATAL("Cannot install kernel %s", k->source.path);
-                        return false;
-                }
-                LOG_SUCCESS("update_image: Successfully installed %s", k->source.path);
-        }
-
-        /* Set the default to the highest release kernel */
-        default_kernel = nc_array_get(kernels, 0);
-        LOG_DEBUG("update_image: Setting default_kernel to %s", default_kernel->source.path);
-        if (!boot_manager_set_default_kernel(self, default_kernel)) {
-                LOG_FATAL("Failed to set the default kernel to: %s", default_kernel->source.path);
-                return false;
-        }
-        LOG_SUCCESS("update_image: Default kernel is now %s", default_kernel->source.path);
-
-        /* The kernel parts worked, return status from bootloader update */
-        return ret;
-}
-
-/**
  * Update the target with logical view of a native installation
  */
-static bool boot_manager_update_native(BootManager *self)
+static bool boot_manager_update_target(BootManager *self)
 {
         assert(self != NULL);
         autofree(KernelArray) *kernels = NULL;
@@ -161,7 +62,7 @@ static bool boot_manager_update_native(BootManager *self)
         bool ret = false;
         bool bootloader_updated = false;
 
-        LOG_DEBUG("Now beginning update_native");
+        LOG_DEBUG("Now beginning update");
 
         /* Grab the available kernels */
         kernels = boot_manager_get_kernels(self);

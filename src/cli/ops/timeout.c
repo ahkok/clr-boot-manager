@@ -37,7 +37,7 @@ bool cbm_command_set_timeout(int argc, char **argv)
         autofree(BootManager) *manager = NULL;
         bool update_efi_vars = false;
 
-        if (!cli_default_args_init(&argc, &argv, &root, NULL, &update_efi_vars)) {
+        if (!cli_default_args_init(&argc, &argv, &root, &update_efi_vars)) {
                 return false;
         }
 
@@ -102,7 +102,7 @@ bool cbm_command_get_timeout(int argc, char **argv)
         autofree(BootManager) *manager = NULL;
         bool update_efi_vars = false;
 
-        cli_default_args_init(&argc, &argv, &root, NULL, &update_efi_vars);
+        cli_default_args_init(&argc, &argv, &root, &update_efi_vars);
 
         manager = boot_manager_new();
         if (!manager) {

@@ -99,9 +99,9 @@ static void nuke_boot_device(struct PlaygroundConfig *config)
  */
 
 /**
- * We're operating in native mode (!image) with UEFI, and a boot device
+ * We're operating over UEFI, and a boot device
  */
-START_TEST(bootman_select_uefi_native_with_boot)
+START_TEST(bootman_select_uefi_with_boot)
 {
         static PlaygroundConfig config = { "4.2.1-121.kvm", NULL, 0, .uefi = true };
         setenv("CBM_TEST_FSTYPE", "vfat", 1);
@@ -109,14 +109,16 @@ START_TEST(bootman_select_uefi_native_with_boot)
         bootman_select_set_default_vtables();
 
         m = prepare_playground(&config);
+        boot_manager_set_prefix(m, PLAYGROUND_ROOT);
+
         ensure_bootloader_is(m, UEFI_BOOTLOADER_NAME);
 }
 END_TEST
 
 /**
- * We're operating in native mode (!image) with UEFI, and NO boot device
+ * We're operating over UEFI, and NO boot device
  */
-START_TEST(bootman_select_uefi_native_without_boot)
+START_TEST(bootman_select_uefi_without_boot)
 {
         static PlaygroundConfig config = { "4.2.1-121.kvm", NULL, 0, .uefi = true };
         setenv("CBM_TEST_FSTYPE", "vfat", 1);
@@ -126,44 +128,6 @@ START_TEST(bootman_select_uefi_native_without_boot)
         /* Reinit the boot manager with no supporting boot device */
         m = prepare_playground(&config);
         nuke_boot_device(&config);
-        boot_manager_set_prefix(m, PLAYGROUND_ROOT);
-
-        ensure_bootloader_is(m, UEFI_BOOTLOADER_NAME);
-}
-END_TEST
-
-/**
- * We're operating in image mode with UEFI, and a boot device
- */
-START_TEST(bootman_select_uefi_image_with_boot)
-{
-        static PlaygroundConfig config = { "4.2.1-121.kvm", NULL, 0, .uefi = true };
-        setenv("CBM_TEST_FSTYPE", "vfat", 1);
-        autofree(BootManager) *m = NULL;
-        bootman_select_set_default_vtables();
-
-        m = prepare_playground(&config);
-        boot_manager_set_image_mode(m, true);
-        boot_manager_set_prefix(m, PLAYGROUND_ROOT);
-
-        ensure_bootloader_is(m, UEFI_BOOTLOADER_NAME);
-}
-END_TEST
-
-/**
- * We're operating in image mode with UEFI, and NO boot device
- */
-START_TEST(bootman_select_uefi_image_without_boot)
-{
-        static PlaygroundConfig config = { "4.2.1-121.kvm", NULL, 0, .uefi = true };
-        setenv("CBM_TEST_FSTYPE", "vfat", 1);
-        autofree(BootManager) *m = NULL;
-        bootman_select_set_default_vtables();
-
-        /* Reinit the boot manager with no supporting boot device */
-        m = prepare_playground(&config);
-        nuke_boot_device(&config);
-        boot_manager_set_image_mode(m, true);
         boot_manager_set_prefix(m, PLAYGROUND_ROOT);
 
         ensure_bootloader_is(m, UEFI_BOOTLOADER_NAME);
@@ -241,13 +205,9 @@ static void bootman_select_set_legacy_vtables(void)
  */
 
 /**
- * We're operating in native mode (!image) with a legacy device available
- *
- * extlinux mode will only be activated when we find a legacy device through
- * blkid inspection of the root device. Thus we *must* have a boot device,
- * and the other tests will ensure extlinux isn't detected.
+ * We're operating with a legacy device available
  */
-START_TEST(bootman_select_extlinux_native_with_boot)
+START_TEST(bootman_select_extlinux_with_boot)
 {
         PlaygroundConfig config = { "4.2.1-121.kvm", NULL, 0, .uefi = false };
         setenv("CBM_TEST_FSTYPE", "ext4", 1);
@@ -255,22 +215,6 @@ START_TEST(bootman_select_extlinux_native_with_boot)
         bootman_select_set_legacy_vtables();
 
         m = prepare_playground(&config);
-        ensure_bootloader_is(m, "extlinux");
-}
-END_TEST
-
-/**
- * We're operating in image mode with a legacy device available
- */
-START_TEST(bootman_select_extlinux_image_with_boot)
-{
-        PlaygroundConfig config = { "4.2.1-121.kvm", NULL, 0, .uefi = false };
-        setenv("CBM_TEST_FSTYPE", "ext4", 1);
-        autofree(BootManager) *m = NULL;
-        bootman_select_set_legacy_vtables();
-
-        m = prepare_playground(&config);
-        boot_manager_set_image_mode(m, true);
         boot_manager_set_prefix(m, PLAYGROUND_ROOT);
 
         ensure_bootloader_is(m, "extlinux");
@@ -336,10 +280,9 @@ static void bootman_select_set_grub2_vtables(void)
 }
 
 /**
- * We're operating in native mode (!image) with GRUB2, and NO boot device
- * We ONLY support GRUB2 in "native" mode, i.e. via chroot or actually native.
+ * We're operating with GRUB2, and NO boot device
  */
-START_TEST(bootman_select_grub2_native_without_boot)
+START_TEST(bootman_select_grub2_without_boot)
 {
         static PlaygroundConfig config = { "4.2.1-121.kvm", NULL, 0, .uefi = false };
         setenv("CBM_TEST_FSTYPE", "ext4", 1);
@@ -360,8 +303,7 @@ END_TEST
  */
 
 /**
- * We have a GPT disk that contains a legacy partition, but we're in native
- * mode with UEFI available
+ * We have a GPT disk that contains a legacy partition, we are with UEFI available
  * We should select UEFI bootloader when /sys/firmware/efi exists
  */
 START_TEST(bootman_select_edge_uefi_with_legacy_part_native)
@@ -383,8 +325,7 @@ START_TEST(bootman_select_edge_uefi_with_legacy_part_native)
 END_TEST
 
 /**
- * We have a GPT disk that contains a legacy partition, but we're in image
- * mode with UEFI available
+ * We have a GPT disk that contains a legacy partition, we are with UEFI available
  * We should only ever select extlinux
  */
 START_TEST(bootman_select_edge_uefi_with_legacy_part_image)
@@ -398,16 +339,7 @@ START_TEST(bootman_select_edge_uefi_with_legacy_part_image)
         m = prepare_playground(&config);
         ensure_bootloader_is(m, "extlinux");
 
-        /* Ensure it's still extlinux in image mode */
-        boot_manager_set_image_mode(m, true);
         boot_manager_set_prefix(m, PLAYGROUND_ROOT);
-        ensure_bootloader_is(m, "extlinux");
-
-        /* Construct /sys/firmware/efi. */
-        fail_if(!nc_mkdir_p(PLAYGROUND_ROOT "/sys/firmware/efi", 00755), "Failed to emulate EFI");
-        boot_manager_set_prefix(m, PLAYGROUND_ROOT);
-
-        /* We're in image mode, the firmware is not relevant */
         ensure_bootloader_is(m, "extlinux");
 }
 END_TEST
@@ -421,21 +353,18 @@ static Suite *core_suite(void)
 
         /* UEFI tests */
         tc = tcase_create("bootman_select_uefi_functions");
-        tcase_add_test(tc, bootman_select_uefi_native_with_boot);
-        tcase_add_test(tc, bootman_select_uefi_native_without_boot);
-        tcase_add_test(tc, bootman_select_uefi_image_with_boot);
-        tcase_add_test(tc, bootman_select_uefi_image_without_boot);
+        tcase_add_test(tc, bootman_select_uefi_with_boot);
+        tcase_add_test(tc, bootman_select_uefi_without_boot);
         suite_add_tcase(s, tc);
 
         /* extlinux tests */
         tc = tcase_create("bootman_select_extlinux_functions");
-        tcase_add_test(tc, bootman_select_extlinux_native_with_boot);
-        tcase_add_test(tc, bootman_select_extlinux_image_with_boot);
+        tcase_add_test(tc, bootman_select_extlinux_with_boot);
         suite_add_tcase(s, tc);
 
         /* grub2 tests */
         tc = tcase_create("bootman_select_grub2_functions");
-        tcase_add_test(tc, bootman_select_grub2_native_without_boot);
+        tcase_add_test(tc, bootman_select_grub2_without_boot);
         suite_add_tcase(s, tc);
 
         /* edge cases */

@@ -301,17 +301,6 @@ const CbmDeviceProbe *boot_manager_get_root_device(BootManager *manager);
 bool boot_manager_modify_bootloader(BootManager *manager, int ops);
 
 /**
- * Determine if the BootManager is operating in image mode, i.e.
- * the prefix/root is not "/" - the native filesystem
- */
-bool boot_manager_is_image_mode(BootManager *manager);
-
-/**
- * Flip the boot manager into image mode
- */
-void boot_manager_set_image_mode(BootManager *manager, bool image_mode);
-
-/**
  * Set boot manager flag, determining if it should or not update efi variables
  */
 void boot_manager_set_update_efi_vars(BootManager *self, bool update_efi_vars);
@@ -394,7 +383,7 @@ void cbm_free_sysconfig(SystemConfig *config);
 /**
  * Inspect a given root path and return a new SystemConfig for it
  */
-SystemConfig *cbm_inspect_root(const char *path, bool image_mode);
+SystemConfig *cbm_inspect_root(const char *path);
 
 /**
  * Determine if the given SystemConfig is sane for use

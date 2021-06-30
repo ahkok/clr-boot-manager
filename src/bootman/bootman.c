@@ -92,9 +92,6 @@ BootManager *boot_manager_new()
                 }
         }
 
-        /* CLI can override this */
-        boot_manager_set_image_mode(r, false);
-
         r->initrd_freestanding = nc_hashmap_new_full(nc_string_hash,
                                                      nc_string_compare, free, free_initrd_entry);
         OOM_CHECK(r->initrd_freestanding);
@@ -181,7 +178,7 @@ bool boot_manager_set_prefix(BootManager *self, char *prefix)
         cbm_free_sysconfig(self->sysconfig);
         self->sysconfig = NULL;
 
-        config = cbm_inspect_root(prefix, self->image_mode);
+        config = cbm_inspect_root(prefix);
         CHECK_DBG_RET_VAL(!config, false, "Could not inspect root");
 
         self->sysconfig = config;
@@ -697,20 +694,6 @@ bool boot_manager_modify_bootloader(BootManager *self, int flags)
                 LOG_FATAL("Unknown bootloader operation");
                 return false;
         }
-}
-
-bool boot_manager_is_image_mode(BootManager *self)
-{
-        assert(self != NULL);
-
-        return self->image_mode;
-}
-
-void boot_manager_set_image_mode(BootManager *self, bool image_mode)
-{
-        assert(self != NULL);
-
-        self->image_mode = image_mode;
 }
 
 bool boot_manager_needs_install(BootManager *self)

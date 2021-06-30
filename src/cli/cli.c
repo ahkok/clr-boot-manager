@@ -32,7 +32,7 @@ struct cli_option {
 
 static struct cli_option cli_opts[] = {
         OPTION("path", required_argument, 0, 'p', "Set the base path for boot management operations."),
-        OPTION("image", no_argument, 0, 'i', "Force clr-boot-manager to run in image mode."),
+        OPTION("image", no_argument, 0, 'i', "Force clr-boot-manager to run in image mode(deprecated)."),
         OPTION("no-efi-update", no_argument, 0, 'n',
                "Don't update efi vars when using shim-systemd backend."),
         OPTION(0, 0, 0, 0, NULL),
@@ -67,8 +67,7 @@ void cli_print_default_args_help(void)
         }
 }
 
-bool cli_default_args_init(int *argc, char ***argv, char **root, bool *forced_image,
-                           bool *update_efi_vars)
+bool cli_default_args_init(int *argc, char ***argv, char **root, bool *update_efi_vars)
 {
         int o_in = 0;
         int c;
@@ -108,9 +107,7 @@ bool cli_default_args_init(int *argc, char ***argv, char **root, bool *forced_im
                         }
                         break;
                 case 'i':
-                        if (forced_image) {
-                                *forced_image = true;
-                        }
+                        LOG_INFO("-i,--image flags are deprecated");
                         break;
                 case 'n':
                         if (update_efi_vars) {

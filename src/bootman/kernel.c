@@ -478,9 +478,6 @@ const SystemKernel *boot_manager_get_system_kernel(BootManager *self)
         if (!self || !self->have_sys_kernel) {
                 return NULL;
         }
-        if (boot_manager_is_image_mode(self)) {
-                return NULL;
-        }
         return (const SystemKernel *)&(self->sys_kernel);
 }
 

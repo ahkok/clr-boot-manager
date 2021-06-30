@@ -106,7 +106,6 @@ START_TEST(bootman_legacy_image)
         fail_if(!m, "Failed to prepare update playground");
 
         /* Validate image install */
-        boot_manager_set_image_mode(m, true);
         fail_if(!boot_manager_update(m), "Failed to update image");
 }
 END_TEST
@@ -117,7 +116,6 @@ START_TEST(bootman_legacy_native)
 
         m = prepare_playground(&legacy_config);
         fail_if(!m, "Failed to prepare update playground");
-        boot_manager_set_image_mode(m, false);
 
         fail_if(!set_kernel_booted(&legacy_kernels[1], true), "Failed to set kernel as booted");
 
@@ -160,7 +158,6 @@ START_TEST(bootman_legacy_update_from_unknown)
 
         m = prepare_playground(&config);
         fail_if(!m, "Failed to prepare update playground");
-        boot_manager_set_image_mode(m, false);
 
         /* Hax the uname */
         boot_manager_set_uname(m, "unknown-uname");
@@ -204,7 +201,7 @@ END_TEST
  *      - Request update of bootloader with *check* operation
  *      - Verify bootloader files are updated and match
  */
-static void internal_loader_test(bool image_mode)
+static void internal_loader_test(void)
 {
         autofree(BootManager) *m = NULL;
         PlaygroundConfig start_conf = { 0 };
@@ -217,7 +214,6 @@ static void internal_loader_test(bool image_mode)
 
         m = prepare_playground(&start_conf);
         fail_if(!m, "Fatal: Cannot initialise playground");
-        boot_manager_set_image_mode(m, image_mode);
 
         fail_if(!boot_manager_modify_bootloader(m, BOOTLOADER_OPERATION_INSTALL),
                 "Failed to install bootloader");
@@ -259,15 +255,9 @@ static void internal_loader_test(bool image_mode)
                 "Auto-updated bootloader doesn't match source");
 }
 
-START_TEST(bootman_legacy_update_image)
+START_TEST(bootman_legacy_update)
 {
-        internal_loader_test(true);
-}
-END_TEST
-
-START_TEST(bootman_legacy_update_native)
-{
-        internal_loader_test(false);
+        internal_loader_test();
 }
 END_TEST
 
@@ -282,9 +272,7 @@ static Suite *core_suite(void)
         tcase_add_test(tc, bootman_legacy_image);
         tcase_add_test(tc, bootman_legacy_native);
         tcase_add_test(tc, bootman_legacy_update_from_unknown);
-        tcase_add_test(tc, bootman_legacy_update_image);
-        tcase_add_test(tc, bootman_legacy_update_image);
-        tcase_add_test(tc, bootman_legacy_update_native);
+        tcase_add_test(tc, bootman_legacy_update);
         suite_add_tcase(s, tc);
 
         return s;

@@ -140,7 +140,7 @@ typedef struct shim_systemd_config {
         char *efi_fallback_dir;
         char *efi_fallback_dst_host;
         char *bin_dst_esp;
-        int is_image_mode;
+        int is_image;
         int has_boot_rec;
 
         /* the following two are needed to create layout, but they have to be "probed"
@@ -189,7 +189,7 @@ static bool exists_identical(const char *path, const char *spath)
 static bool shim_systemd_needs_install(__cbm_unused__ const BootManager *manager)
 {
         if (config.has_boot_rec < 0) {
-                if (!config.is_image_mode) {
+                if (!config.is_image) {
                         config.has_boot_rec =
                             bootvar_has_boot_rec(BOOT_DIRECTORY, config.shim_dst_esp);
                 } else {
@@ -208,7 +208,7 @@ static bool shim_systemd_needs_install(__cbm_unused__ const BootManager *manager
 static bool shim_systemd_needs_update(__cbm_unused__ const BootManager *manager)
 {
         if (config.has_boot_rec < 0) {
-                if (!config.is_image_mode) {
+                if (!config.is_image) {
                         config.has_boot_rec =
                             bootvar_has_boot_rec(BOOT_DIRECTORY, config.shim_dst_esp);
                 } else {
@@ -240,7 +240,7 @@ static bool make_layout(const BootManager *manager)
         }
         /* in case of image creation, override the fallback bootloader, so the
          * media will be bootable. */
-        if (config.is_image_mode) {
+        if (config.is_image) {
                 if (!nc_mkdir_p(config.efi_fallback_dir, 00755)) {
                         return false;
                 }
@@ -278,7 +278,7 @@ static bool shim_systemd_install(const BootManager *manager)
                 return false;
         }
 
-        if (!config.is_image_mode) {
+        if (!config.is_image) {
                 if (!config.has_boot_rec && boot_manager_is_update_efi_vars((BootManager *)manager)) {
                         if (bootvar_create(BOOT_DIRECTORY, config.shim_dst_esp, varname, 9)) {
                                 LOG_ERROR("Cannot create EFI variable (boot entry)");
@@ -313,13 +313,15 @@ static bool shim_systemd_init(const BootManager *manager)
         autofree(char) *prefix = NULL;
         autofree(char) *boot_root = NULL;
 
-        if (!boot_manager_is_image_mode((BootManager *)manager)) {
+        prefix = strdup(boot_manager_get_prefix((BootManager *)manager));
+        config.is_image = 1;
+
+        /* Anything not / means it's an image */
+        if (streq(prefix, "/")) {
                 if (bootvar_init()) {
                         return false;
                 }
-                config.is_image_mode = 0;
-        } else {
-                config.is_image_mode = 1;
+                config.is_image = 0;
         }
 
         /* init systemd-class since we're reusing it for kernel install.
@@ -332,7 +334,6 @@ static bool shim_systemd_init(const BootManager *manager)
         sd_class_init(manager, &systemd_config);
         sd_class_set_get_kernel_destination_impl(shim_systemd_get_kernel_destination);
 
-        prefix = strdup(boot_manager_get_prefix((BootManager *)manager));
         len = strlen(prefix);
         if (len > 0 && prefix[len - 1] == '/') {
                 prefix[len - 1] = '\0';
@@ -375,7 +376,7 @@ static void shim_systemd_destroy(const BootManager *manager)
         free(config.bin_dst_host);
         free(config.bin_dst_esp);
         free(config.efi_dst_host);
-        if (!config.is_image_mode && boot_manager_is_update_efi_vars((BootManager *)manager)) {
+        if (!config.is_image && boot_manager_is_update_efi_vars((BootManager *)manager)) {
                 bootvar_destroy();
         }
         sd_class_destroy(manager);

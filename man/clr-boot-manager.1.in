@@ -37,7 +37,7 @@ Set the base path for boot management operations\&.
 .PP
 \fB\-i\fR, \fB\-\-image\fR
 .RS 4
-Force \fBclr\-boot\-manager\fR to run in image mode\&.
+Force \fBclr\-boot\-manager\fR to run in image mode(deprecated)\&.
 .RE
 .PP
 \fB\-n\fR, \fB\-\-no-efi-update\fR

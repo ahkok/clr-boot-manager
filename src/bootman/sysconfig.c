@@ -153,78 +153,16 @@ int cbm_get_filesystem_cap(const char *boot_device)
         }
 }
 
-static void cmb_inspect_root_native(SystemConfig *c, char *realp) {
-        bool native_uefi = false;
-        autofree(char) *fw_path;
-        char *boot = NULL;
-
-        /* typically /sys, but we forcibly fail this with our tests */
-        fw_path = string_printf("%s/firmware/efi", cbm_system_get_sysfs_path());
-        native_uefi = nc_file_exists(fw_path);
-
-        /*
-         * Try to find the system ESP. The "force legacy" flag is useful
-         * for development purpose only, this is a way to manually test
-         * legacy install when we don't a fully prepared environment to that
-         * namely: having an installer image capable of booting _and_ installing
-         * a legacy bios system.
-         */
-        if (native_uefi && !getenv("CBM_FORCE_LEGACY")) {
-                boot = get_boot_device();
-                c->wanted_boot_mask |= BOOTLOADER_CAP_UEFI;
-
-                if (boot) {
-                        c->boot_device = boot;
-                        c->wanted_boot_mask |= BOOTLOADER_CAP_GPT;
-                        LOG_INFO("Discovered UEFI ESP: %s", boot);
-                }
-        } else {
-                /* Find legacy relative to root, on GPT */
-                boot = get_legacy_boot_device(realp);
-                c->wanted_boot_mask |= BOOTLOADER_CAP_LEGACY;
-
-                if (boot) {
-                        c->boot_device = boot;
-                        c->wanted_boot_mask |= BOOTLOADER_CAP_GPT;
-                        LOG_INFO("Discovered legacy boot device: %s", boot);
-                }
-        }
-}
-
-static void cmb_inspect_root_image(SystemConfig *c, char *realp) {
-        char *legacy_boot = NULL;
-        char *uefi_boot = NULL;
-        char *boot = NULL;
-        char *force_legacy = NULL;
-        int mask = 0;
-
-        legacy_boot = get_legacy_boot_device(realp);
-        uefi_boot = get_boot_device();
-        force_legacy = getenv("CBM_FORCE_LEGACY");
-
-        /*
-         * uefi has precedence over legacy, if we detected both uefi wins
-         * but if force_legacy is set then we honor "users choice"
-         */
-        if (!force_legacy && ((legacy_boot && uefi_boot) || uefi_boot)) {
-                mask = BOOTLOADER_CAP_UEFI | BOOTLOADER_CAP_GPT;
-                boot = uefi_boot;
-                free(legacy_boot);
-        } else if (legacy_boot || force_legacy) {
-                mask = BOOTLOADER_CAP_LEGACY | BOOTLOADER_CAP_GPT;
-                boot = legacy_boot;
-                free(uefi_boot);
-        }
-
-        c->boot_device = boot;
-        c->wanted_boot_mask = mask;
-}
-
-SystemConfig *cbm_inspect_root(const char *path, bool image_mode)
+SystemConfig *cbm_inspect_root(const char *path)
 {
         SystemConfig *c = NULL;
         char *realp = NULL;
         char *rel = NULL;
+        char *legacy_boot = NULL;
+        char *uefi_boot = NULL;
+        bool force_legacy = false;
+        bool native_uefi = false;
+        char *fw_path = NULL;
 
         CHECK_ERR_RET_VAL(!path, NULL, "invalid \"path\" value: null");
 
@@ -237,10 +175,39 @@ SystemConfig *cbm_inspect_root(const char *path, bool image_mode)
         c->prefix = realp;
         c->wanted_boot_mask = 0;
 
-        if (image_mode) {
-                cmb_inspect_root_image(c, realp);
+        if (getenv("CBM_FORCE_LEGACY")) {
+                force_legacy = true;
+        }
+
+        legacy_boot = get_legacy_boot_device(realp);
+        uefi_boot = get_boot_device();
+
+        /* typically /sys, but we forcibly fail this with our tests */
+        fw_path = string_printf("%s/firmware/efi", cbm_system_get_sysfs_path());
+        native_uefi = nc_file_exists(fw_path);
+
+        /*
+         * uefi has precedence over legacy, if we detected both uefi wins
+         * but if force_legacy is set then we honor "users choice"
+         */
+        if (!force_legacy && ((legacy_boot && uefi_boot) || uefi_boot)) {
+                c->wanted_boot_mask = BOOTLOADER_CAP_UEFI;
+        } else if (!native_uefi && (legacy_boot || force_legacy)) {
+                c->wanted_boot_mask = BOOTLOADER_CAP_LEGACY;
+        } else if (native_uefi && !force_legacy) {
+                c->wanted_boot_mask = BOOTLOADER_CAP_UEFI;
         } else {
-                cmb_inspect_root_native(c, realp);
+                c->wanted_boot_mask = BOOTLOADER_CAP_LEGACY;
+        }
+
+        if (c->wanted_boot_mask != 0) {
+                if ((c->wanted_boot_mask & BOOTLOADER_CAP_LEGACY) == BOOTLOADER_CAP_LEGACY) {
+                        c->boot_device = legacy_boot;
+                        free(uefi_boot);
+                } else if ((c->wanted_boot_mask & BOOTLOADER_CAP_UEFI) == BOOTLOADER_CAP_UEFI) {
+                        c->boot_device = uefi_boot;
+                        free(legacy_boot);
+                }
         }
 
         /* Our probe methods are GPT only. If we found one, it's definitely GPT */
@@ -263,10 +230,12 @@ SystemConfig *cbm_inspect_root(const char *path, bool image_mode)
 
         c->root_device = cbm_probe_path(realp);
 
+        free(fw_path);
         return c;
 
  error:
         DECLARE_OOM();
+        free(fw_path);
         free(realp);
         return NULL;
 }

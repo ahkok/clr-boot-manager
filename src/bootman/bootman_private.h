@@ -31,7 +31,6 @@ struct BootManager {
         char *abs_bootdir;             /**<Real boot dir */
         SystemKernel sys_kernel;       /**<Native kernel info, if any */
         bool have_sys_kernel;          /**<Whether sys_kernel is set */
-        bool image_mode;               /**<Are we in image mode? */
         bool update_efi_vars;          /**<Should we update efi variables? */
         SystemConfig *sysconfig;       /**<System configuration */
         char *cmdline;                 /**<Additional cmdline to append */

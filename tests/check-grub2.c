@@ -88,7 +88,6 @@ START_TEST(bootman_grub2_image)
         fail_if(!m, "Failed to prepare update playground");
 
         /* Validate image install */
-        boot_manager_set_image_mode(m, true);
         fail_if(!boot_manager_update(m), "Failed to update image");
 }
 END_TEST
@@ -99,7 +98,6 @@ START_TEST(bootman_grub2_native)
 
         m = prepare_playground(&grub2_config);
         fail_if(!m, "Failed to prepare update playground");
-        boot_manager_set_image_mode(m, false);
 
         fail_if(!set_kernel_booted(&grub2_kernels[1], true), "Failed to set kernel as booted");
 
@@ -142,7 +140,6 @@ START_TEST(bootman_grub2_update_from_unknown)
 
         m = prepare_playground(&config);
         fail_if(!m, "Failed to prepare update playground");
-        boot_manager_set_image_mode(m, false);
 
         /* Hax the uname */
         boot_manager_set_uname(m, "unknown-uname");

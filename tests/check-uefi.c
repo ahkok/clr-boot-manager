@@ -86,7 +86,6 @@ static void bootman_uefi_image_shared(PlaygroundConfig *config)
         fail_if(!m, "Failed to prepare update playground");
 
         /* Validate image install */
-        boot_manager_set_image_mode(m, true);
         fail_if(!boot_manager_update(m), "Failed to update image");
 }
 
@@ -108,7 +107,6 @@ static void bootman_uefi_native_shared(PlaygroundConfig *config)
 
         m = prepare_playground(config);
         fail_if(!m, "Failed to prepare update playground");
-        boot_manager_set_image_mode(m, false);
 
         fail_if(!set_kernel_booted(&uefi_kernels[1], true), "Failed to set kernel as booted");
 
@@ -162,7 +160,6 @@ START_TEST(bootman_uefi_update_from_unknown)
 
         m = prepare_playground(&config);
         fail_if(!m, "Failed to prepare update playground");
-        boot_manager_set_image_mode(m, false);
 
         /* Hax the uname */
         boot_manager_set_uname(m, "unknown-uname");
@@ -206,22 +203,19 @@ END_TEST
  *      - Request update of bootloader with *check* operation
  *      - Verify bootloader files are updated and match
  */
-static void internal_loader_test(bool image_mode)
+static void internal_loader_test(void)
 {
         autofree(BootManager) *m = NULL;
         bool installs_default_bootloader = true;
 #if defined(HAVE_SHIM_SYSTEMD_BOOT)
         installs_default_bootloader = false;
 #endif
-        /* whether the harness needs to check the default bootloader match.
-         * shim-systemd is the only exception, it only installs the default
-         * bootloader in the image mode. */
-        bool check_default_bootloader = installs_default_bootloader || image_mode;
+        /* whether the harness needs to check the default bootloader match. */
+        bool check_default_bootloader = installs_default_bootloader;
         PlaygroundConfig start_conf = {.uefi = true };
 
         m = prepare_playground(&start_conf);
         fail_if(!m, "Fatal: Cannot initialise playground");
-        boot_manager_set_image_mode(m, image_mode);
 
         fail_if(!boot_manager_modify_bootloader(m, BOOTLOADER_OPERATION_INSTALL),
                 "Failed to install bootloader");
@@ -250,15 +244,9 @@ static void internal_loader_test(bool image_mode)
         fail_if(!confirm_bootloader_match(check_default_bootloader), "Auto-updated bootloader doesn't match source");
 }
 
-START_TEST(bootman_uefi_update_image)
+START_TEST(bootman_uefi_update)
 {
-        internal_loader_test(true);
-}
-END_TEST
-
-START_TEST(bootman_uefi_update_native)
-{
-        internal_loader_test(false);
+        internal_loader_test();
 }
 END_TEST
 
@@ -402,7 +390,6 @@ START_TEST(bootman_uefi_initrd_freestandings)
 
         file_set_text(path_initrd, "Placeholder initrd");
         /* Validate image install */
-        boot_manager_set_image_mode(m, false);
         fail_if(!boot_manager_enumerate_initrds_freestanding(m), "Failed to find freestanding initrd");
 
         fail_if(!check_freestanding_initrds_available(m, initrd_name), "Failed reading from initrd path");
@@ -427,7 +414,6 @@ START_TEST(bootman_uefi_missing_initrd_freestandings)
 
         file_set_text(path_initrd, "Placeholder initrd");
         /* Validate image install */
-        boot_manager_set_image_mode(m, false);
         fail_if(!boot_manager_enumerate_initrds_freestanding(m), "Failed to find freestanding initrd");
         unlink(path_initrd);
         fail_if(!check_freestanding_initrds_available(m, initrd_name), "Failed reading from initrd path");
@@ -453,7 +439,6 @@ START_TEST(bootman_uefi_initrd_freestandings_image)
 
         file_set_text(path_initrd, "Placeholder initrd");
         /* Validate image install */
-        boot_manager_set_image_mode(m, true);
         fail_if(!boot_manager_enumerate_initrds_freestanding(m), "Failed to find freestanding initrd");
 
         fail_if(!check_freestanding_initrds_available(m, initrd_name), "Failed reading from initrd path");
@@ -472,7 +457,6 @@ START_TEST(bootman_uefi_ensure_removed)
 
         m = prepare_playground(&uefi_config);
         fail_if(!m, "Failed to prepare update playground");
-        boot_manager_set_image_mode(m, false);
 
         /* Start on the 4.2.1-121.kvm */
         fail_if(!boot_manager_set_uname(m, "4.2.1-121.kvm"), "Failed to set initial kernel");
@@ -501,11 +485,9 @@ START_TEST(bootman_uefi_list_kernels)
 {
         autofree(BootManager) *m = NULL;
         char *kernels[] = {
-                "* " KERNEL_NAMESPACE ".native.4.2.3-138",
-                "  " KERNEL_NAMESPACE ".native.4.2.1-137",
+                "  " KERNEL_NAMESPACE ".native.4.2.3-138",
                 "  " KERNEL_NAMESPACE ".kvm.4.2.3-124",
-                "  " KERNEL_NAMESPACE ".kvm.4.2.1-121",
-                "  " KERNEL_NAMESPACE ".dash-test.4.2.1-1",
+                "* " KERNEL_NAMESPACE ".dash-test.4.2.1-1",
                 NULL
         };
         int klen = sizeof(kernels) / sizeof(char *);
@@ -514,7 +496,6 @@ START_TEST(bootman_uefi_list_kernels)
         fail_if(!m, "Failed to prepare update playground");
 
         /* Validate image install */
-        boot_manager_set_image_mode(m, true);
         fail_if(!boot_manager_update(m), "Failed to update image");
         results = boot_manager_list_kernels(m);
         fail_if(!results, "Failed to get kernels");
@@ -534,9 +515,7 @@ START_TEST(bootman_uefi_set_kernel)
         autofree(BootManager) *m = NULL;
         char *kernels[] = {
                 "  " KERNEL_NAMESPACE ".native.4.2.3-138",
-                "  " KERNEL_NAMESPACE ".native.4.2.1-137",
                 "  " KERNEL_NAMESPACE ".kvm.4.2.3-124",
-                "  " KERNEL_NAMESPACE ".kvm.4.2.1-121",
                 "* " KERNEL_NAMESPACE ".dash-test.4.2.1-1",
                 NULL
         };
@@ -551,7 +530,6 @@ START_TEST(bootman_uefi_set_kernel)
         fail_if(!m, "Failed to prepare update playground");
 
         /* Validate image install */
-        boot_manager_set_image_mode(m, true);
         fail_if(!boot_manager_update(m), "Failed to update image");
         fail_if(!boot_manager_set_default_kernel(m, &kern), "Failed to set default kernel");
         results = boot_manager_list_kernels(m);
@@ -581,7 +559,6 @@ START_TEST(bootman_uefi_set_kernel_missing)
         fail_if(!m, "Failed to prepare update playground");
 
         /* Validate image install */
-        boot_manager_set_image_mode(m, true);
         fail_if(!boot_manager_update(m), "Failed to update image");
         fail_if(boot_manager_set_default_kernel(m, &kern),
                 "Set default kernel that doesn't exist");
@@ -599,8 +576,7 @@ static Suite *core_suite(void)
         tcase_add_test(tc, bootman_uefi_image_modules);
         tcase_add_test(tc, bootman_uefi_native_modules);
         tcase_add_test(tc, bootman_uefi_update_from_unknown);
-        tcase_add_test(tc, bootman_uefi_update_image);
-        tcase_add_test(tc, bootman_uefi_update_native);
+        tcase_add_test(tc, bootman_uefi_update);
         tcase_add_test(tc, bootman_uefi_remove_bootloader);
         tcase_add_test(tc, bootman_uefi_namespace_migration);
         tcase_add_test(tc, bootman_uefi_ensure_removed);
