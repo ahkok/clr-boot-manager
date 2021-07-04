@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
       with:
@@ -12,20 +12,20 @@ jobs:
     - name: Prepare
       run: |
         sudo apt-get update
-        sudo apt-get install libefiboot-dev check grep ninja-build meson gcc-5 libblkid-dev lcov valgrind gnu-efi libefivar-dev ruby ruby-dev rubygems
+        sudo apt-get install libefiboot-dev check grep ninja-build meson gcc-9 libblkid-dev lcov valgrind gnu-efi libefivar-dev libbtrfsutil-dev ruby ruby-dev rubygems
         sudo gem install coveralls-lcov
     - name: "Run Test: stock"
       env:
-        CC: "gcc-5"
+        CC: "gcc-9"
       run: |
         ./scripts/run-test-suite.sh stock && coveralls-lcov outCoverage/coverage.info
     - name: "Run Test: systemd"
       env:
-        CC: "gcc-5"
+        CC: "gcc-9"
       run: |
         ./scripts/run-test-suite.sh systemd && coveralls-lcov outCoverage/coverage.info
     - name: "Run Test: shim-systemd-boot"
       env:
-        CC: "gcc-5"
+        CC: "gcc-9"
       run: |
         ./scripts/run-test-suite.sh shim-systemd-boot && coveralls-lcov outCoverage/coverage.info

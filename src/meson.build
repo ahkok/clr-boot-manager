@@ -68,6 +68,7 @@ libcbm_includes = [
 libcbm_dependencies = [
     link_libnica,
     dep_blkid,
+    dep_btrfs,
 ]
 
 # Special constraints for efi functionality

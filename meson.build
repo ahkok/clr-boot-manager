@@ -44,6 +44,12 @@ ccompiler = meson.get_compiler('c')
 dep_blkid = dependency('blkid')
 dep_check = dependency('check', version: '>= 0.9')
 
+# other deps
+dep_btrfs = ccompiler.find_library('btrfsutil')
+if not ccompiler.has_header('btrfsutil.h')
+    error('Cannot find btrfsutil.h. Is btrfs-progs-dev(el) installed?')
+endif
+
 # Grab necessary paths
 path_prefix = get_option('prefix')
 path_bindir = join_paths(path_prefix, get_option('bindir'))

@@ -269,6 +269,10 @@ bool sd_class_install_kernel(const BootManager *manager, const Kernel *kernel)
         if (root_dev->luks_uuid) {
                 cbm_writer_append_printf(writer, "rd.luks.uuid=%s ", root_dev->luks_uuid);
         }
+        /* Add Btrfs information if relevant */
+        if (root_dev->btrfs_sub) {
+                cbm_writer_append_printf(writer, "rootflags=subvol=%s ", root_dev->btrfs_sub);
+        }
 
         /* Finish it off with the command line options */
         cbm_writer_append_printf(writer, "%s\n", kernel->meta.cmdline);

@@ -240,6 +240,11 @@ bool grub2_write_kernel(const Grub2Config *config, const Kernel *kernel)
                                          "rd.luks.uuid=%s ",
                                          config->root_dev->luks_uuid);
         }
+        if (config->root_dev->btrfs_sub) {
+                cbm_writer_append_printf(config->writer,
+                                         "rootflags=subvol=%s ",
+                                         config->root_dev->btrfs_sub);
+        }
 
         /* Finish it off with the command line options */
         cbm_writer_append_printf(config->writer, "%s\"\n", kernel->meta.cmdline);

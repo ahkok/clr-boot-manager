@@ -26,6 +26,7 @@ typedef struct CbmDeviceProbe {
         char *uuid;      /**< UUID for all partition types */
         char *part_uuid; /**< PartUUID for GPT partitions */
         char *luks_uuid; /**< Parent LUKS UUID for the partition */
+        char *btrfs_sub; /**< Btrfs subvolume of the rootfs */
         bool gpt;        /**<Whether this device belongs to a GPT disk */
 } CbmDeviceProbe;
 

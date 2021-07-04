@@ -21,6 +21,7 @@
 #include <sys/stat.h>
 #include <sys/sysmacros.h>
 #include <unistd.h>
+#include <btrfsutil.h>
 
 #include "blkid_stub.h"
 #include "files.h"
@@ -253,6 +254,16 @@ CbmDeviceProbe *cbm_probe_path(const char *path)
         /* Now check we have at least one UUID value */
         if (!probe.part_uuid && !probe.uuid) {
                 LOG_ERROR("Unable to find UUID for %s: %s", devnode, strerror(errno));
+        }
+
+        /* Check if its a Btrfs device */
+        if (btrfs_util_is_subvolume(path) == BTRFS_UTIL_OK) {
+                LOG_DEBUG("Root device is a Btrfs subvolume");
+                enum btrfs_util_error err = btrfs_util_subvolume_path(path, 0, &probe.btrfs_sub);
+                if (err != BTRFS_UTIL_OK) {
+                        LOG_ERROR("Failed to get subvolume of Btrfs filesystem %s: %s",
+                                  path, btrfs_util_strerror(err));
+                }
         }
 
         /* Check if its a software raid device */

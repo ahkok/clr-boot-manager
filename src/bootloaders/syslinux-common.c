@@ -175,6 +175,10 @@ bool syslinux_common_set_default_kernel(const BootManager *manager, const Kernel
                 if (root_dev->luks_uuid) {
                         cbm_writer_append_printf(writer, "rd.luks.uuid=%s ", root_dev->luks_uuid);
                 }
+                /* Add Btrfs information if relevant */
+                if (root_dev->btrfs_sub) {
+                        cbm_writer_append_printf(writer, "rootflags=subvol=%s ", root_dev->btrfs_sub);
+                }
 
                 /* Write out the cmdline */
                 cbm_writer_append_printf(writer, "%s\n", k->meta.cmdline);
