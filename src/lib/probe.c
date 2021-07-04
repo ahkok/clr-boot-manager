@@ -72,7 +72,7 @@ static char *cbm_get_luks_uuid(const char *part)
         /* i.e. /sys/block/dm-1/slaves/dm-0/slaves/sdb1/dev
          * or /sys/block/dm-1/slaves/sdb1/dev
          */
-        npath = string_printf("%s/block/%s/slaves/*{,/slaves/*}/dev", sys, part);
+        npath = string_printf("%s/block/%s/slaves/*{/slaves/*,}/dev", sys, part);
 
         glob(npath, GLOB_DOOFFS | GLOB_BRACE, NULL, &glo);
 
