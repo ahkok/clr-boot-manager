@@ -86,7 +86,8 @@ static int extlinux_get_capabilities(const BootManager *manager)
                 return 0;
         }
 
-        return BOOTLOADER_CAP_GPT | BOOTLOADER_CAP_LEGACY | BOOTLOADER_CAP_EXTFS;
+        return BOOTLOADER_CAP_GPT | BOOTLOADER_CAP_LEGACY | BOOTLOADER_CAP_EXTFS |
+               BOOTLOADER_CAP_PARTLESS;
 }
 
 __cbm_export__ const BootLoader extlinux_bootloader = {.name = "extlinux",

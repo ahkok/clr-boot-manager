@@ -35,12 +35,13 @@ typedef int (*boot_loader_caps)(const BootManager *);
 
 typedef enum {
         BOOTLOADER_CAP_MIN = 1 << 0,
-        BOOTLOADER_CAP_UEFI = 1 << 1,   /**<Bootloader supports UEFI */
-        BOOTLOADER_CAP_GPT = 1 << 2,    /**<Bootloader supports GPT boot partition */
-        BOOTLOADER_CAP_LEGACY = 1 << 3, /**<Bootloader supports legacy boot */
-        BOOTLOADER_CAP_EXTFS = 1 << 4,  /**<Bootloader supports ext2/3/4 */
-        BOOTLOADER_CAP_FATFS = 1 << 5,  /**<Bootloader supports vfat */
-        BOOTLOADER_CAP_MAX = 1 << 6
+        BOOTLOADER_CAP_UEFI = 1 << 1,    /**<Bootloader supports UEFI */
+        BOOTLOADER_CAP_GPT = 1 << 2,     /**<Bootloader supports GPT boot partition */
+        BOOTLOADER_CAP_LEGACY = 1 << 3,  /**<Bootloader supports legacy boot */
+        BOOTLOADER_CAP_EXTFS = 1 << 4,   /**<Bootloader supports ext2/3/4 */
+        BOOTLOADER_CAP_FATFS = 1 << 5,   /**<Bootloader supports vfat */
+        BOOTLOADER_CAP_PARTLESS = 1<< 6, /**<Bootloader supports partitionless boot */
+        BOOTLOADER_CAP_MAX = 1 << 7
 } BootLoaderCapability;
 
 /**

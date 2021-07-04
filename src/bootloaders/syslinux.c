@@ -88,7 +88,8 @@ static int syslinux_get_capabilities(const BootManager *manager)
                 return 0;
         }
 
-        return BOOTLOADER_CAP_GPT | BOOTLOADER_CAP_LEGACY | BOOTLOADER_CAP_FATFS;
+        return BOOTLOADER_CAP_GPT | BOOTLOADER_CAP_LEGACY | BOOTLOADER_CAP_FATFS |
+               BOOTLOADER_CAP_PARTLESS;
 }
 
 __cbm_export__ const BootLoader syslinux_bootloader = {.name = "syslinux",
